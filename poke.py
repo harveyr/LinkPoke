@@ -84,7 +84,7 @@ class LinkPoker:
 if __name__ == "__main__":
     print(c.header("--- LinkPoke ---"))
     if len(sys.argv) == 1:
-        print(c.bold("Usage: python poke.py [http://]poke.this/here"))
+        print(c.bold("Usage: python poke.py http://poke.this/here"))
         sys.exit()
 
     url = sys.argv[1]
