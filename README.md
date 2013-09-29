@@ -8,5 +8,6 @@ Good link: http://www.google.com
 
 Bad link: http://www.google.com/thispageprollyshouldnotexistihope
 
+Result:
 
-
+![Screenshot](https://raw.github.com/harveyr/LinkPoke/master/screencap.png)
