@@ -34,13 +34,18 @@ c = Colors()
 
 
 def poke_link(url):
-    request = requests.get(url)
-    feedback = '[{}] {}'.format(request.status_code, url)
-    if request.status_code == 200:
-        feedback = c.success(feedback)
-    else:
-        feedback = c.fail(feedback)
-    print(feedback)
+    """Need this outside of the LinkPoker class so that multiprocessing can
+    map to it. Otherwise there's a pickle error."""
+    try:
+        request = requests.get(url)
+        feedback = '[{}] {}'.format(request.status_code, url)
+        if request.status_code == 200:
+            feedback = c.success(feedback)
+        else:
+            feedback = c.fail(feedback)
+        print(feedback)
+    except requests.exceptions.ConnectionError as e:
+        print(c.fail('[Error] {}\n{}\n'.format(url, e)))
 
 
 class LinkPoker:
