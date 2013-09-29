@@ -1,7 +1,9 @@
 import sys
 from multiprocessing import Pool
 import requests
+import urlparse
 from bs4 import BeautifulSoup
+import signal
 
 
 class Colors:
@@ -23,7 +25,7 @@ class Colors:
         return self.FAIL + text + self.ENDC
 
     def header(self, text):
-        return self.HEADER + text + self.ENDC
+        return self.OKBLUE + text + self.ENDC
 
     def bold(self, text):
         return self.BOLD + text + self.ENDC
@@ -41,24 +43,53 @@ def poke_link(url):
     print(feedback)
 
 
-def poke_page(url):
-    if not url.startswith("http:"):
-        url = "http://" + url
-    print(c.bold(url))
+class LinkPoker:
 
-    r = requests.get(url)
-    if r.status_code != 200:
-        print(c.fail("Bad input url ({})".format(r.status_code)))
-        return False
+    def __init__(self, url):
+        self.url = url
+        self.parsed_url = urlparse.urlparse(url)
+        request = requests.get(url)
+        if request.status_code != 200:
+            raise Exception(
+                "Bad status code for input url: {}".format(request.status_code))
+        self.soup = BeautifulSoup(request.text)
 
-    soup = BeautifulSoup(r.text)
-    link_urls = [a.get('href') for a in soup.find_all('a')]
-    p = Pool(4)
-    p.map(poke_link, link_urls)
+    def absolute_url(self, link_url):
+        if link_url[0] in ['/', '#']:
+            if link_url[0] == '#':
+                link_url = '/' + link_url
+            return "{scheme}://{netloc}{link}".format(
+                scheme=self.parsed_url.scheme,
+                netloc=self.parsed_url.netloc,
+                link=link_url)
+        else:
+            return link_url
+
+    def poke(self):
+        link_urls = set(map(
+            self.absolute_url,
+            [a.get('href') for a in self.soup.find_all('a')]))
+        self.pool = Pool(4)
+        self.pool.map(poke_link, link_urls)
+
+    def stop(self):
+        self.pool.terminate()
+
 
 if __name__ == "__main__":
     print(c.header("--- LinkPoke ---"))
     if len(sys.argv) == 1:
         print(c.bold("Usage: python poke.py [http://]poke.this/here"))
-    else:
-        poke_page(sys.argv[1])
+        sys.exit()
+
+    url = sys.argv[1]
+    poker = LinkPoker(url)
+    print(c.bold(url))
+
+    def signal_handler(signal, frame):
+        poker.stop()
+        print(c.warn("\nAdios."))
+        sys.exit()
+    signal.signal(signal.SIGINT, signal_handler)
+
+    poker.poke()
